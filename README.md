@@ -5,17 +5,12 @@ Zookeeper ServerSet Discovery Plugin for Elasticsearch
 
 
 
-In order to install the plugin, run: 
-
-```sh
-bin/plugin install zircote/serverset-plugin/1.0.0-snapshot
-```
 
 You need to install a version matching your Elasticsearch version:
 
 |       Elasticsearch    |  AWS Cloud Plugin |                                                             Docs                                                                   |
 |------------------------|-------------------|------------------------------------------------------------------------------------------------------------------------------------|
-|    es-1.5              | 1.0.0-SNAPSHOT    | [1.0.0-snapshot](https://github.com/zircote/serverset-plugin)                                                                      |
+|    es-1.5              | 1.0-SNAPSHOT    | [1.0-snapshot](https://github.com/zircote/serverset-plugin)                                                                      |
 
 To build a `SNAPSHOT` version, you need to build it with Maven:
 
@@ -36,9 +31,11 @@ Here is a simple sample configuration:
 
 ```
 discovery:
-  type: serverset
-  serverset_path: /aurora/ec2-user/prod/elasticsearch
-  zk_ensemble: 127.0.0.1:2181
+  type: com.zircote.elasticsearch.zookeeper.serverset
+  serverset:
+    enabled: true
+    serverset_path: /aurora/ec2-user/prod/elasticsearch
+    zk_ensemble: 127.0.0.1:2181
     
 ```
 

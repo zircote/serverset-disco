@@ -15,12 +15,17 @@
  *     the License.
  *
  */
-package com.hmhco.elasticsearch.plugin.zookeeper.serverset;
+package com.zircote.elasticsearch.plugin.zookeeper.serverset;
 
 import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.common.settings.Settings;
 
 public class ServerSetPlugin extends AbstractPlugin {
+    private final Settings settings;
 
+    public ServerSetPlugin(Settings settings) {
+        this.settings = settings;
+    }
     public String name() {
         return "serverset-plugin";
     }

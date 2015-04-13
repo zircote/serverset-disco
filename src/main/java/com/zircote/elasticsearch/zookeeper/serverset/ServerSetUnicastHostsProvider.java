@@ -15,12 +15,14 @@
  *     the License.
  *
  */
-package com.hmhco.elasticsearch.zookeeper.serverset.discovery;
+package com.zircote.elasticsearch.zookeeper.serverset;
 
 import com.google.common.collect.ImmutableSet;
+import com.twitter.common.io.Codec;
 import com.twitter.common.net.pool.DynamicHostSet;
 import com.twitter.common.quantity.Amount;
 import com.twitter.common.quantity.Time;
+import com.twitter.common.zookeeper.Group;
 import com.twitter.common.zookeeper.ServerSetImpl;
 import com.twitter.common.zookeeper.ZooKeeperClient;
 import com.twitter.common.zookeeper.ZooKeeperClient.Credentials;
@@ -31,6 +33,7 @@ import org.apache.zookeeper.ZooDefs;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.discovery.zen.ping.unicast.UnicastHostsProvider;
@@ -57,18 +60,12 @@ public class ServerSetUnicastHostsProvider extends AbstractComponent implements 
     private TransportService transportService;
     private Version version;
 
+    @Inject
     public ServerSetUnicastHostsProvider(Settings settings, Version version, TransportService transportService) {
         super(settings);
         transportService = transportService;
         version = version;
-        setUp();
         SERVICE = settings.get("discovery.serverset.serverset_path");
-        try {
-            ServerSetImpl client = createServerSet();
-            client.monitor(serverSetMonitor);
-        } catch (DynamicHostSet.MonitorException|IOException e) {
-            logger.error(e.toString());
-        }
 
     }
 
@@ -82,12 +79,17 @@ public class ServerSetUnicastHostsProvider extends AbstractComponent implements 
     }
 
     private ServerSetImpl createServerSet() throws IOException {
-        return new ServerSetImpl(createZkClient(), ACL, SERVICE);
+        ZooKeeperClient zkClient = createZkClient();
+        Codec<ServiceInstance> codec = ServerSetImpl.createJsonCodec();
+        Group group = new Group(zkClient, ZooDefs.Ids.OPEN_ACL_UNSAFE, SERVICE);
+        return new ServerSetImpl(zkClient, group, codec);
     }
 
     private ZooKeeperClient createZkClient() {
-        for (String i : settings.getAsArray("discovery.serverset.zk_ensemble")) {
-            String parts[] = i.split(":");
+        String[] zk_hosts = settings.get("discovery.serverset.zk_ensemble").split(",");
+        for (String i : zk_hosts) {
+            String[] parts = i.split(":");
+            logger.debug("Zookeeper Host:" + parts[0] + ":" + parts[1]);
             zkEnsemble.add(new InetSocketAddress(parts[0], Integer.parseInt(parts[1])));
         }
         return new ZooKeeperClient(zkTimeout, zkCredentials, zkEnsemble);
@@ -95,6 +97,14 @@ public class ServerSetUnicastHostsProvider extends AbstractComponent implements 
 
     public List<DiscoveryNode> buildDynamicNodes() {
         ArrayList<DiscoveryNode> discoNodes = Lists.newArrayList();
+        try {
+            setUp();
+            ServerSetImpl client = createServerSet();
+            client.monitor(serverSetMonitor);
+        } catch (DynamicHostSet.MonitorException|IOException e) {
+            logger.error(e.toString() + "{}", e);
+            return discoNodes;
+        }
         try {
             ImmutableSet<ServiceInstance> items = ImmutableSet.copyOf(serverSetBuffer.take());
 
@@ -107,7 +117,8 @@ public class ServerSetUnicastHostsProvider extends AbstractComponent implements 
                 }
             }
         } catch (Exception e) {
-            logger.error(e.toString());
+            logger.error(e.toString() + "{}", e);
+            return discoNodes;
         }
         return discoNodes;
     }

@@ -15,7 +15,7 @@
  *     the License.
  *
  */
-package com.hmhco.elasticsearch.zookeeper.serverset.discovery;
+package com.zircote.elasticsearch.zookeeper.serverset;
 
 
 import org.elasticsearch.discovery.zen.ZenDiscoveryModule;
@@ -23,10 +23,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.Discovery;
 
-public class ServerSetDiscoveryModule extends ZenDiscoveryModule{
+public class ServersetDiscoveryModule extends ZenDiscoveryModule{
     @Inject
-    public ServerSetDiscoveryModule(Settings settings) {
-        if (settings.getAsBoolean("serversets.enabled", true)) {
+    public ServersetDiscoveryModule(Settings settings) {
+        if (settings.getAsBoolean("discovery.serverset.enabled", true)) {
             addUnicastHostProvider(ServerSetUnicastHostsProvider.class);
         }
     }
